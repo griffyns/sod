@@ -1,0 +1,29 @@
+{
+  "name": "sod",
+  "version": "0.0.0",
+  "description": "Geospatial Lib",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/.bin/jasmine-node --matchall --color spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acwhittam/sod.git"
+  },
+  "keywords": [
+    "geospatial",
+    "geojson"
+  ],
+  "author": "Andrew Whittam <acwhittam@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/acwhittam/sod/issues"
+  },
+  "homepage": "https://github.com/acwhittam/sod#readme",
+  "devDependencies": {
+    "jasmine": "^2.3.2"
+  },
+  "dependencies": {
+    "ramda": "^0.18.0"
+  }
+}
