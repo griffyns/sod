@@ -21,7 +21,8 @@
   },
   "homepage": "https://github.com/acwhittam/sod#readme",
   "devDependencies": {
-    "jasmine": "^2.3.2"
+    "jasmine": "^2.3.2",
+    "jasmine-given": "^2.6.3"
   },
   "dependencies": {
     "ramda": "^0.18.0"
