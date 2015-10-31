@@ -17,7 +17,9 @@ var hasKeyEqualTo = R.curry(function(key, value, obj) {
     }
 });
 var getProperty = R.curry(function(key, obj) {
-    return R.compose(R.prop(key), R.prop('properties'))(obj);
+    return R.compose(
+    	R.prop(key),
+    	R.prop('properties'))(obj);
 });
 var getLatLng = R.compose(R.prop('coordinates'), R.prop('geometry'));
 var getLat = R.compose(R.nth(1), getLatLng);
@@ -47,6 +49,7 @@ var isPoint = R.compose(R.equals('Point'), R.prop('type'), R.prop('geometry'));
 var isValidType = function(geojson) {
     return R.contains(R.prop('type', geojson), ["FeatureCollection", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"]);
 };
+
 module.exports = {
     featurecollection: function(arrayOfFeatures) {
         return {
@@ -77,29 +80,46 @@ module.exports = {
     }),
     filter: R.curry(function(key, value, fc) {
         var self = this;
-        var areEqual = R.compose(hasKeyEqualTo(key, value), R.prop('properties'));
-        return R.compose(self.featurecollection, R.filter(areEqual), R.prop('features'))(fc);
+        var areEqual = R.compose(
+        	hasKeyEqualTo(key, value),
+        	R.prop('properties'));
+        return R.compose(
+        	self.featurecollection,
+        	R.filter(areEqual),
+        	R.prop('features'))(fc);
     }),
     map: R.curry(function(func, fc) {
         var self = this;
-        return R.compose(self.featurecollection, R.map(func), R.prop('features'))(fc);
+        return R.compose(
+        	self.featurecollection,
+        	R.map(func),
+        	R.prop('features'))(fc);
     }),
     sortByLatLng: function(fc) {
         var self = this;
         var compare = function(a, b) {
             return getLng(a) == getLng(b) ? getLat(b) - getLat(a) : getLng(b) - getLng(a);
         };
-        return R.compose(self.featurecollection, R.sort(compare), R.prop('features'))(fc);
+        return R.compose(
+        	self.featurecollection,
+        	R.sort(compare),
+        	R.prop('features'))(fc);
     },
     convex: function(fc) {
         var self = this;
-        return R.compose(self.featurecollection, R.prop('features'))(fc);
+        return R.compose(
+        	self.featurecollection,
+        	R.prop('features'))(fc);
     },
     isValid: function(geojson) {
-        return R.all(R.equals(true), [isValidType(geojson)]);
+        return R.all(
+        	R.equals(true),
+        	[isValidType(geojson)]);
     },
     split: R.curry(function(key, fc) {
-        return R.compose(R.groupBy(getProperty(key)), R.prop('features'))(fc);
+        return R.compose(
+        	R.groupBy(getProperty(key)),
+        	R.prop('features'))(fc);
     }),
     polygon: R.curry(function(coords, properties) {
         return {
