@@ -18,8 +18,8 @@ var hasKeyEqualTo = R.curry(function(key, value, obj) {
 });
 var getProperty = R.curry(function(key, obj) {
     return R.compose(
-    	R.prop(key),
-    	R.prop('properties'))(obj);
+        R.prop(key),
+        R.prop('properties'))(obj);
 });
 var getLatLng = R.compose(R.prop('coordinates'), R.prop('geometry'));
 var getLat = R.compose(R.nth(1), getLatLng);
@@ -41,7 +41,9 @@ var buildPointFeature = function(array) {
 
 var XYZ = R.curry(function(zoom, feature) {
     var coords = getLatLng(feature);
-    return [(Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))), (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))), zoom];
+    return [(Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))), (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))),
+        zoom
+    ];
 });
 
 var isPoint = R.compose(R.equals('Point'), R.prop('type'), R.prop('geometry'));
@@ -81,45 +83,47 @@ module.exports = {
     filter: R.curry(function(key, value, fc) {
         var self = this;
         var areEqual = R.compose(
-        	hasKeyEqualTo(key, value),
-        	R.prop('properties'));
+            hasKeyEqualTo(key, value),
+            R.prop('properties'));
         return R.compose(
-        	self.featurecollection,
-        	R.filter(areEqual),
-        	R.prop('features'))(fc);
+            self.featurecollection,
+            R.filter(areEqual),
+            R.prop('features'))(fc);
     }),
     map: R.curry(function(func, fc) {
         var self = this;
         return R.compose(
-        	self.featurecollection,
-        	R.map(func),
-        	R.prop('features'))(fc);
+            self.featurecollection,
+            R.map(func),
+            R.prop('features'))(fc);
+    }),
+    sort: R.curry(function(func, fc) {
+        var self = this;
+        return R.compose(
+            self.featurecollection,
+            R.sort(func),
+            R.prop('features'))(fc);
     }),
     sortByLatLng: function(fc) {
         var self = this;
-        var compare = function(a, b) {
+        return self.sort(function(a, b) {
             return getLng(a) == getLng(b) ? getLat(b) - getLat(a) : getLng(b) - getLng(a);
-        };
-        return R.compose(
-        	self.featurecollection,
-        	R.sort(compare),
-        	R.prop('features'))(fc);
+        }, fc);
     },
     convex: function(fc) {
         var self = this;
         return R.compose(
-        	self.featurecollection,
-        	R.prop('features'))(fc);
+            self.featurecollection,
+            R.prop('features'))(fc);
     },
     isValid: function(geojson) {
         return R.all(
-        	R.equals(true),
-        	[isValidType(geojson)]);
+            R.equals(true), [isValidType(geojson)]);
     },
     split: R.curry(function(key, fc) {
         return R.compose(
-        	R.groupBy(getProperty(key)),
-        	R.prop('features'))(fc);
+            R.groupBy(getProperty(key)),
+            R.prop('features'))(fc);
     }),
     polygon: R.curry(function(coords, properties) {
         return {
