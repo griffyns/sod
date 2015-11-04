@@ -16,11 +16,13 @@ var hasKeyEqualTo = R.curry(function(key, value, obj) {
         return false;
     }
 });
+
 var getProperty = R.curry(function(key, obj) {
     return R.compose(
         R.prop(key),
         R.prop('properties'))(obj);
 });
+
 var getLatLng = R.compose(R.prop('coordinates'), R.prop('geometry'));
 var getLat = R.compose(R.nth(1), getLatLng);
 var getLng = R.compose(R.nth(0), getLatLng);
@@ -49,7 +51,8 @@ var XYZ = R.curry(function(zoom, feature) {
 var isPoint = R.compose(R.equals('Point'), R.prop('type'), R.prop('geometry'));
 
 var isValidType = function(geojson) {
-    return R.contains(R.prop('type', geojson), ["FeatureCollection", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"]);
+    return R.contains(
+    	R.prop('type', geojson), ["FeatureCollection", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"]);
 };
 
 module.exports = {
@@ -78,6 +81,17 @@ module.exports = {
             R.converge(R.props, [R.keys, R.identity]),
             R.groupBy(XYZ(25)),
             R.filter(isPoint),
+            R.prop('features'))(fc);
+    }),
+    remove: R.curry(function(key, value, fc) {
+        var self = this;
+        var areEqual = R.compose(
+        	R.not,
+            hasKeyEqualTo(key, value),
+            R.prop('properties'));
+        return R.compose(
+            self.featurecollection,
+            R.filter(areEqual),
             R.prop('features'))(fc);
     }),
     filter: R.curry(function(key, value, fc) {
