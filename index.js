@@ -52,7 +52,7 @@ var isPoint = R.compose(R.equals('Point'), R.prop('type'), R.prop('geometry'));
 
 var isValidType = function(geojson) {
     return R.contains(
-    	R.prop('type', geojson), ["FeatureCollection", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"]);
+        R.prop('type', geojson), ["FeatureCollection", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"]);
 };
 
 module.exports = {
@@ -86,7 +86,7 @@ module.exports = {
     remove: R.curry(function(key, value, fc) {
         var self = this;
         var areEqual = R.compose(
-        	R.not,
+            R.not,
             hasKeyEqualTo(key, value),
             R.prop('properties'));
         return R.compose(
@@ -139,6 +139,14 @@ module.exports = {
             R.groupBy(getProperty(key)),
             R.prop('features'))(fc);
     }),
+    bbox: function(fc) {
+        var coords = (R.compose(R.splitEvery(2), R.flatten, R.pluck('coordinates'), R.pluck('geometry'), R.prop('features'))(fc));
+        var minLng = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(0)))(coords));
+        var minLat = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(1)))(coords));
+        var maxLng = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(0)))(coords));
+        var maxLat = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(1)))(coords));
+        return [minLng, minLat, maxLng, maxLat];
+    },
     polygon: R.curry(function(coords, properties) {
         return {
             type: "Feature",
