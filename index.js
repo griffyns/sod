@@ -139,9 +139,21 @@ module.exports = {
             R.groupBy(getProperty(key)),
             R.prop('features'))(fc);
     }),
+    appendBbox: function(fc) {
+        var self = this;
+        var bboxLens = R.lensProp('bbox');
+        return R.set(bboxLens, self.bbox(fc), fc);
+    },
     bbox: function(fc) {
-        var coords = (R.compose(R.splitEvery(2), R.flatten, R.pluck('coordinates'), R.pluck('geometry'), R.prop('features'))(fc));
-        var minLng = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(0)))(coords));
+        var coords = (R.compose(
+            R.splitEvery(2),
+            R.flatten,
+            R.pluck('coordinates'),
+            R.pluck('geometry'),
+            R.prop('features'))(fc));
+
+        var minLng = (R.compose(R.reduce(R.min, Infinity),
+            R.map(R.nth(0)))(coords));
         var minLat = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(1)))(coords));
         var maxLng = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(0)))(coords));
         var maxLat = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(1)))(coords));
