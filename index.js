@@ -1,26 +1,28 @@
-var R = require('ramda');
+var R = require('ramda'); 
+
 
 var log = function(x) {
     console.log(x);
     return x;
 }
 
-var hasKeyEqualTo = R.curry(function(key, value, obj) {
-    if (key in obj) {
-        if (R.type(obj[key]) === 'Array') {
-            return R.contains(value, obj[key]);
+var propertyEqualTo = R.curry(function(key, value, feature) {
+    var properties = (R.prop('properties')(feature));
+    if (key in properties) {
+        if (R.type(properties[key]) === 'Array') {
+            return R.contains(value, properties[key]);
         } else {
-            return obj[key] === value;
+            return properties[key] === value;
         }
     } else {
         return false;
     }
 });
 
-var getProperty = R.curry(function(key, obj) {
+var getProperty = R.curry(function(key, feature) {
     return R.compose(
         R.prop(key),
-        R.prop('properties'))(obj);
+        R.prop('properties'))(feature);
 });
 
 var getLatLng = R.compose(R.prop('coordinates'), R.prop('geometry'));
@@ -41,6 +43,7 @@ var buildPointFeature = function(array) {
 
 };
 
+
 var XYZ = R.curry(function(zoom, feature) {
     var coords = getLatLng(feature);
     return [(Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))), (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))),
@@ -55,6 +58,12 @@ var isValidType = function(geojson) {
         R.prop('type', geojson), ["FeatureCollection", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"]);
 };
 
+
+ 
+
+var allCoords = R.compose(log,R.pluck('coordinates'),R.pluck('geometry'), R.prop('features'));
+
+
 module.exports = {
     featurecollection: function(arrayOfFeatures) {
         return {
@@ -63,6 +72,15 @@ module.exports = {
         };
 
     },
+    explode: function(fc){
+
+    	return fc;
+
+
+    },
+
+    propertyEqualTo:propertyEqualTo,
+            
     point: R.curry(function(coords, properties) {
         return {
             type: "Feature",
@@ -75,33 +93,27 @@ module.exports = {
     }),
     merge: R.curry(function(fc) {
         var self = this;
-        return R.compose(
+        return (R.compose(
             self.featurecollection,
             R.map(buildPointFeature),
             R.converge(R.props, [R.keys, R.identity]),
-            R.groupBy(XYZ(25)),
+            R.groupBy(getLatLng),
+            //R.groupBy(XYZ(25)),
             R.filter(isPoint),
-            R.prop('features'))(fc);
+            R.prop('features'))(fc));
     }),
-    remove: R.curry(function(key, value, fc) {
+    remove: R.curry(function(func, fc) {
         var self = this;
-        var areEqual = R.compose(
-            R.not,
-            hasKeyEqualTo(key, value),
-            R.prop('properties'));
         return R.compose(
             self.featurecollection,
-            R.filter(areEqual),
+            R.filter(R.compose(R.not, func)),
             R.prop('features'))(fc);
     }),
-    filter: R.curry(function(key, value, fc) {
+    filter: R.curry(function(func, fc) {
         var self = this;
-        var areEqual = R.compose(
-            hasKeyEqualTo(key, value),
-            R.prop('properties'));
         return R.compose(
             self.featurecollection,
-            R.filter(areEqual),
+            R.filter(func),
             R.prop('features'))(fc);
     }),
     map: R.curry(function(func, fc) {
@@ -154,7 +166,9 @@ module.exports = {
 
         var minLng = (R.compose(R.reduce(R.min, Infinity),
             R.map(R.nth(0)))(coords));
-        var minLat = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(1)))(coords));
+        var minLat = (R.compose(
+        	R.reduce(R.min, Infinity), 
+        	R.map(R.nth(1)))(coords));
         var maxLng = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(0)))(coords));
         var maxLat = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(1)))(coords));
         return [minLng, minLat, maxLng, maxLat];

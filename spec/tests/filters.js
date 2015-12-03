@@ -42,25 +42,22 @@ describe("Sod Lib", function() {
             ]
         };
         expect(
-            JSON.stringify(
-                sod.filter('letter', 'a', input))
-        ).toBe(
-            JSON.stringify({
-                type: "FeatureCollection",
-                features: [{
-                    "type": "Feature",
-                    "properties": {
-                        'letter': 'a'
-                    },
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [-105.01621,
-                            39.57422
-                        ]
-                    }
-                }]
-            })
-        )
+            sod.filter(sod.propertyEqualTo('letter', 'a'), input)
+        ).toEqual({
+            type: "FeatureCollection",
+            features: [{
+                "type": "Feature",
+                "properties": {
+                    'letter': 'a'
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [-105.01621,
+                        39.57422
+                    ]
+                }
+            }]
+        })
 
 
     });
@@ -106,7 +103,7 @@ describe("Sod Lib", function() {
         };
         expect(
             JSON.stringify(
-                sod.remove('letter', 'b', input))
+                sod.remove(sod.propertyEqualTo('letter', 'b'), input))
         ).toBe(
             JSON.stringify({
                 type: "FeatureCollection",
@@ -181,10 +178,10 @@ describe("Sod Lib", function() {
             ]
         };
         expect(
-            JSON.stringify(
-                sod.filter('letter', 'a', input))
-        ).toBe(
-            JSON.stringify({
+          
+                sod.filter(sod.propertyEqualTo('letter', 'a'), input)
+        ).toEqual(
+            {
                 type: "FeatureCollection",
                 features: [{
                     "type": "Feature",
@@ -198,7 +195,7 @@ describe("Sod Lib", function() {
                         ]
                     }
                 }]
-            })
+            }
         )
 
 
