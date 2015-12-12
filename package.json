@@ -25,6 +25,8 @@
     "jasmine-given": "^2.6.3"
   },
   "dependencies": {
-    "ramda": "^0.18.0"
+    "d3": "^3.5.10",
+    "ramda": "^0.18.0",
+    "turf": "^2.0.2"
   }
 }
