@@ -1,4 +1,4 @@
-# sod
+# sod [![Build Status](https://travis-ci.org/acwhittam/sod.svg?branch=master)](https://travis-ci.org/acwhittam/sod)
 
 Geospatial Library for GeoJSON
 
