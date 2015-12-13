@@ -103,11 +103,10 @@ var allCoords = R.compose(R.uniq, R.splitEvery(2), R.flatten, R.prop('coordinate
 
 var explode = R.compose(buildFeaturecollection, R.filter(R.compose(R.not, isPoint)), R.prop('features'));
 
-var coordsToFeatures = function(coords, properties){
+var coordsToFeatures = function(coords, properties) {
     return (R.map(R.flip(buildPointFeature)(properties))(coords));
 
 };
-
 
 module.exports = {
     voroni: R.compose(buildFeaturecollection, R.map(buildVoroniFeature), createVoroni),

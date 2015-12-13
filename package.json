@@ -4,7 +4,9 @@
   "description": "Geospatial Library for GeoJSON",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/.bin/jasmine-node --matchall --color spec"
+    "test": "jasmine-node --matchall --color --test-dir ./spec",
+    "lint": "jslint index.js",
+    "doc" :"dox -r < index.js | doxme --readme > README.md"
   },
   "repository": {
     "type": "git",
@@ -21,12 +23,13 @@
   },
   "homepage": "https://github.com/acwhittam/sod#readme",
   "devDependencies": {
+    "dox": "^0.8.0",
+    "doxme": "^1.8.2",
     "jasmine": "^2.3.2",
-    "jasmine-given": "^2.6.3"
+    "jslint": "^0.9.5"
   },
   "dependencies": {
     "d3": "^3.5.10",
-    "ramda": "^0.18.0",
-    "turf": "^2.0.2"
+    "ramda": "^0.18.0"
   }
 }
