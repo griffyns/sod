@@ -6,7 +6,7 @@
   "scripts": {
     "test": "jasmine-node --matchall --color --test-dir ./spec",
     "lint": "jslint index.js",
-    "doc" :"dox -r < index.js | doxme --readme > README.md"
+    "doc": "dox -r < index.js | doxme --readme > README.md"
   },
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
   "devDependencies": {
     "dox": "^0.8.0",
     "doxme": "^1.8.2",
-    "jasmine": "^2.3.2",
+    "jasmine-node": "^1.14.5",
     "jslint": "^0.9.5"
   },
   "dependencies": {
