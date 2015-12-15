@@ -73,8 +73,8 @@ var getProperty = R.curry(function (key, feature) {
 
 var combinePoints = function (array) {
     var properties = {
-        features: R.pluck('properties', array)
-    },
+            features: R.pluck('properties', array)
+        },
         latLng = getLatLng(R.nth(0, array));
     return buildPointFeature(latLng, properties);
 };
@@ -82,8 +82,7 @@ var combinePoints = function (array) {
 var XYZ = R.curry(function (zoom, feature) {
     var coords = getLatLng(feature);
     return [
-        (Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))),
-        (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))),
+        (Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))), (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))),
         zoom
     ];
 });
@@ -99,11 +98,65 @@ var isValidType = function (geojson) {
 
 var allCoords = R.compose(R.uniq, R.splitEvery(2), R.flatten, R.prop('coordinates'), R.prop('geometry'));
 
-var explode = R.compose(buildFeaturecollection, R.filter(R.compose(R.not, isPoint)), R.prop('features'));
-
 var coordsToFeatures = function (coords, properties) {
     return (R.map(R.flip(buildPointFeature)(properties))(coords));
 
+};
+
+var buildBoundingBox = function (fc) {
+    var coords = (R.compose(R.splitEvery(2), R.flatten, R.pluck('coordinates'), R.pluck('geometry'), R.prop('features'))(fc)),
+        minLng = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(0)))(coords)),
+        minLat = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(1)))(coords)),
+        maxLng = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(0)))(coords)),
+        maxLat = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(1)))(coords));
+    return [minLng, minLat, maxLng, maxLat];
+};
+
+var merge = R.curry(function (fc) {
+    return (R.compose(buildFeaturecollection, R.map(combinePoints), R.converge(R.props, [R.keys, R.identity]), R.groupBy(getLatLng), R.filter(isPoint), R.prop('features'))(fc));
+});
+
+var remove = R.curry(function (func, fc) {
+    return R.compose(buildFeaturecollection, R.filter(R.compose(R.not, func)), R.prop('features'))(fc);
+});
+
+var filter = R.curry(function (func, fc) {
+    return R.compose(buildFeaturecollection, R.filter(func), R.prop('features'))(fc);
+});
+
+var map = R.curry(function (func, fc) {
+    return R.compose(buildFeaturecollection, R.map(func), R.prop('features'))(fc);
+});
+
+var sort = R.curry(function (func, fc) {
+    return R.compose(buildFeaturecollection, R.sort(func), R.prop('features'))(fc);
+});
+
+var sortByLatLng = function (fc) {
+    return sort(function (a, b) {
+        return getLng(a) === getLng(b) ? getLat(b) - getLat(a) : getLng(b) - getLng(a);
+    }, fc);
+};
+
+var convex = function (fc) {
+    return R.compose(buildFeaturecollection, R.prop('features'))(fc);
+};
+
+var isValid = function (geojson) {
+    return R.all(R.equals(true), [isValidType(geojson)]);
+};
+
+var split = R.curry(function (key, fc) {
+    return R.compose(R.groupBy(getProperty(key)), R.prop('features'))(fc);
+});
+
+var appendBbox = function (fc) {
+    var bboxLens = R.lensProp('bbox');
+    return R.set(bboxLens, buildBoundingBox(fc), fc);
+};
+
+var explode = function (fc) {
+    return (R.compose(buildFeaturecollection, R.nth(0), R.map(R.converge(coordsToFeatures, [allCoords, R.prop('properties')])), R.prop('features'))(fc));
 };
 
 module.exports = {
@@ -111,56 +164,17 @@ module.exports = {
     featurecollection: buildFeaturecollection,
     polygon: buildPolygonFeature,
     point: buildPointFeature,
-    explode: function (fc) {
-        return (R.compose(buildFeaturecollection, R.nth(0), R.map(R.converge(coordsToFeatures, [allCoords, R.prop('properties')])), R.prop('features'))(fc));
-    },
+    explode: explode,
     propertyEqualTo: propertyEqualTo,
-    merge: R.curry(function (fc) {
-        return (R.compose(buildFeaturecollection, R.map(combinePoints), R.converge(R.props, [R.keys, R.identity]), R.groupBy(getLatLng), R.filter(isPoint), R.prop('features'))(fc));
-    }),
-    remove: R.curry(function (func, fc) {
-        var self = this;
-        return R.compose(self.featurecollection, R.filter(R.compose(R.not, func)), R.prop('features'))(fc);
-    }),
-    filter: R.curry(function (func, fc) {
-        var self = this;
-        return R.compose(self.featurecollection, R.filter(func), R.prop('features'))(fc);
-    }),
-    map: R.curry(function (func, fc) {
-        var self = this;
-        return R.compose(self.featurecollection, R.map(func), R.prop('features'))(fc);
-    }),
-    sort: R.curry(function (func, fc) {
-        var self = this;
-        return R.compose(self.featurecollection, R.sort(func), R.prop('features'))(fc);
-    }),
-    sortByLatLng: function (fc) {
-        var self = this;
-        return self.sort(function (a, b) {
-            return getLng(a) === getLng(b) ? getLat(b) - getLat(a) : getLng(b) - getLng(a);
-        }, fc);
-    },
-    convex: function (fc) {
-        var self = this;
-        return R.compose(self.featurecollection, R.prop('features'))(fc);
-    },
-    isValid: function (geojson) {
-        return R.all(R.equals(true), [isValidType(geojson)]);
-    },
-    split: R.curry(function (key, fc) {
-        return R.compose(R.groupBy(getProperty(key)), R.prop('features'))(fc);
-    }),
-    appendBbox: function (fc) {
-        var self = this,
-            bboxLens = R.lensProp('bbox');
-        return R.set(bboxLens, self.bbox(fc), fc);
-    },
-    bbox: function (fc) {
-        var coords = (R.compose(R.splitEvery(2), R.flatten, R.pluck('coordinates'), R.pluck('geometry'), R.prop('features'))(fc)),
-            minLng = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(0)))(coords)),
-            minLat = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(1)))(coords)),
-            maxLng = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(0)))(coords)),
-            maxLat = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(1)))(coords));
-        return [minLng, minLat, maxLng, maxLat];
-    }
+    merge: merge,
+    remove: remove,
+    filter: filter,
+    map: map,
+    sort: sort,
+    sortByLatLng: sortByLatLng,
+    convex: convex,
+    isValid: isValid,
+    split: split,
+    appendBbox: appendBbox,
+    bbox: buildBoundingBox
 };
