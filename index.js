@@ -186,23 +186,17 @@ var explode = function (fc) {
     return (R.compose(buildFeaturecollection, R.nth(0), R.map(R.converge(coordsToFeatures, [allCoords, R.prop('properties')])), R.prop('features'))(fc));
 };
 
-var toCoord = R.curry(
-    function (a, b) {
-        a = a.toFixed(3);
-        b = b.toFixed(3);
-        return [parseFloat(a), parseFloat(b)];
-    }
-);
-
 var centroid = R.compose(
     buildFeaturecollection,
     R.concat([]),
-    function (coords) {
-        return buildPointFeature(coords, {
-            'type': "centroid"
-        });
-    },
-    R.converge(toCoord, [
+    R.flip(buildPointFeature)({
+        'type': "centroid"
+    }),
+    R.converge(function (a, b) {
+        a = a.toFixed(3);
+        b = b.toFixed(3);
+        return [parseFloat(a), parseFloat(b)];
+    }, [
         R.compose(R.mean, R.pluck(0)),
         R.compose(R.mean, R.pluck(1))
     ]),
@@ -213,6 +207,39 @@ var centroid = R.compose(
     R.prop('features')
 );
 
+
+var closest = R.curry(
+    function (pt1, pt2) {
+
+
+    }
+);
+
+var toRadians = R.multiply(R.divide(Math.PI,180));
+
+var distance = R.curry(
+    function (feature1, feature2) {
+        var radius = 6373000; //meters
+
+        var lat1 = getLat(feature1);
+        var lng1 = getLng(feature1);
+
+        var lat2 = getLat(feature2);
+        var lng2 = getLng(feature2);
+
+        var dLat = toRadians(lat2 - lat1); 
+        var dLon = toRadians(lng2 - lng1);
+
+        var a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        var d = radius * c;
+        return Math.round(d);
+    }
+);
 
 module.exports = {
     voroni: voroni,
@@ -232,5 +259,7 @@ module.exports = {
     split: split,
     appendBbox: appendBbox,
     bbox: buildBoundingBox,
-    centroid: centroid
+    centroid: centroid,
+    closest: closest,
+    distance: distance
 };
