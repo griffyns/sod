@@ -208,12 +208,7 @@ var centroid = R.compose(
 );
 
 
-var closest = R.curry(
-    function (pt1, pt2) {
-
-
-    }
-);
+var closest = R.identity;
 
 var toRadians = R.multiply(R.divide(Math.PI,180));
 
