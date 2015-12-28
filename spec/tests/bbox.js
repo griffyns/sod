@@ -1,8 +1,8 @@
  var sod = require('../../index.js');
  var R = require('ramda');
- describe("Sod Lib", function() {
+ describe("Sod Lib", function () {
      // bbox = min Longitude , min Latitude , max Longitude , max Latitude 
-     it("Calculates bounding box for features", function() {
+     it("Calculates bounding box for features", function () {
 
          var input = {
              type: "FeatureCollection",
@@ -68,7 +68,7 @@
          );
 
      });
-     it("Adds bbox to feature collection", function() {
+     it("Adds bbox to feature collection", function () {
 
          var input = {
              type: "FeatureCollection",
@@ -185,11 +185,95 @@
                          }
 
                      ],
-                      bbox: [-109.05, 36.99, 5.01621, 69.57422]
+                     bbox: [-109.05, 36.99, 5.01621, 69.57422]
                  }
-
-
              )
+         );
+
+     });
+     it("Bounding box on Dateline", function () {
+         var input = {
+             "type": "FeatureCollection",
+             "features": [{
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [-180,
+                         0
+                     ]
+                 }
+             }, {
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [176, 4]
+                 }
+             }, {
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [-180,
+                         3
+                     ]
+                 }
+             }, {
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [-177,
+                         7.1
+                     ]
+                 }
+             }, {
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [-174, -0.5]
+                 }
+             }, {
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [-178, -3.7]
+                 }
+             }, {
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [-175.75, -4.75]
+                 }
+             }, {
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [-172.25,
+                         1.75
+                     ]
+                 }
+             }, {
+                 "type": "Feature",
+                 "properties": {},
+                 "geometry": {
+                     "type": "Point",
+                     "coordinates": [-172,
+                         8.2
+                     ]
+                 }
+             }]
+         };
+         expect(
+             JSON.stringify(
+                 sod.bbox(input))
+         ).toBe(
+             JSON.stringify([-180,-4.75,176,8.2])
          );
 
      });

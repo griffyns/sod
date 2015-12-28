@@ -7,26 +7,155 @@ var log = function (x) {
     return x;
 };
 
-var getLatLng = R.compose(R.prop('coordinates'), R.prop('geometry'));
+function alphabetical(a, b) {
+    var A = a.toLowerCase(),
+        B = b.toLowerCase();
+    if (A < B) {
+        return -1;
+    }
+    if (A > B) {
+        return 1;
+    }
+    return 0;
+}
 
-var getLat = R.compose(R.nth(1), getLatLng);
+/********************************************************
+Constants
+********************************************************/
+var VALIDGEOJSONTYPES = ['FeatureCollection', 'GeometryCollection', 'Feature', 'Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'],
+    VALIDGEOJSONGEOMETRIES = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'],
+    REQUIREDGEOJSONPROPERTIES = {
+        FeatureCollection: ['type', 'features'],
+        GeometryCollection: ['type', 'geometries'],
+        Feature: ['type', 'geometry', 'properties'],
+        Point: ['type', 'coordinates'],
+        MultiPoint: ['type', 'coordinates'],
+        LineString: ['type', 'coordinates'],
+        MultiLineString: ['type', 'coordinates'],
+        Polygon: ['type', 'coordinates'],
+        MultiPolygon: ['type', 'coordinates']
+    };
 
-var getLng = R.compose(R.nth(0), getLatLng);
+/********************************************************
+Get Functions
+********************************************************/
+var getType = R.prop('type'),
+    getFeatures = R.prop('features'),
+    getGeomtries = R.prop('geometries'),
+    getGeometry = R.prop('geometry'),
+    getLatLng = R.compose(R.prop('coordinates'), getGeometry),
+    getLat = R.compose(R.nth(1), getLatLng),
+    getLng = R.compose(R.nth(0), getLatLng);
+
+/********************************************************
+Validation Functions
+********************************************************/
+var isArray = function (obj) {
+    return Array.isArray(obj);
+};
+
+var isObject = function (obj) {
+    return (!isArray(obj) && typeof obj === 'object');
+};
+
+var isType = R.curry(
+    function (type, obj) {
+        return (R.ifElse(
+            R.has('type'),
+            R.compose(
+                R.equals(type),
+                getType
+            ),
+            R.F
+        )(obj));
+    }
+);
+
+var validGeoKeys = function (geometry) {
+    var validKeys = (R.sort(alphabetical)(REQUIREDGEOJSONPROPERTIES[R.prop('type', geometry)]));
+    return (R.compose(
+        R.equals(validKeys),
+        R.intersection(validKeys),
+        R.sort(alphabetical),
+        R.keys
+    )(geometry));
+};
+
+var validGeoType = function (geometry) {
+    return R.contains(getType(geometry), VALIDGEOJSONGEOMETRIES);
+};
+
+
+var validGeometry = function (geometry) {
+    return (R.compose(
+        //needs coordinate validation, replace the R.T with R.identity
+        R.ifElse(validGeoType, R.identity, R.F),
+        R.ifElse(validGeoKeys, R.identity, R.F),
+        R.ifElse(R.has('type'), R.identity, R.F)
+    )(geometry));
+};
+/*
+var isFeature = R.curry(
+    function (obj) {
+        return (
+
+        )(obj))
+    }
+);*/
+
+var isPoint = R.compose(
+    isType('Point'),
+    getGeometry
+);
+
+var isValidType = function (geojson) {
+    return R.contains(getType(geojson), VALIDGEOJSONTYPES);
+};
+
+var isValid = function (geojson) {
+    return R.all(R.equals(true), [isValidType(geojson)]);
+};
+
+var buildGeometry = R.curry(
+    function (type, coordinates) {
+        return {
+            'type': type,
+            'coordinates': coordinates
+        };
+    }
+);
+
+var buildFeature = R.curry(
+    function (properties, geometry) {
+        return {
+            'type': 'Feature',
+            'geometry': geometry,
+            'properties': properties
+        };
+    }
+);
+/*
+var buildCollection = R.curry(
+    function (type, array) {
+        return {
+            'type': type,
+        }
+    }
+)*/
 
 var buildFeaturecollection = function (arrayOfFeatures) {
     return {
-        type: "FeatureCollection",
+        type: 'FeatureCollection',
         features: arrayOfFeatures
     };
-
 };
 
 var buildPointFeature = R.curry(
     function (coords, properties) {
         return {
-            type: "Feature",
+            type: 'Feature',
             geometry: {
-                type: "Point",
+                type: 'Point',
                 coordinates: coords
             },
             properties: properties
@@ -37,9 +166,9 @@ var buildPointFeature = R.curry(
 var buildPolygonFeature = R.curry(
     function (coords, properties) {
         return {
-            type: "Feature",
+            type: 'Feature',
             geometry: {
-                type: "Polygon",
+                type: 'Polygon',
                 coordinates: coords
             },
             properties: properties
@@ -48,12 +177,12 @@ var buildPolygonFeature = R.curry(
 );
 
 var createVoroni = R.curry(
-    function (fc) {
+    function (FeatureCollection) {
         var V = d3.geom.voronoi().x(getLat).y(getLng).clipExtent([
             [-180, -90],
             [180, 90]
         ]);
-        return (R.compose(V, R.prop('features'))(fc));
+        return (R.compose(V, R.prop('features'))(FeatureCollection));
     }
 );
 
@@ -67,13 +196,23 @@ var buildVoroniFeature = R.curry(
 
 var voroni = R.compose(buildFeaturecollection, R.map(buildVoroniFeature), createVoroni);
 
-var isArray = function (obj) {
-    return Array.isArray(obj);
-};
-
 var propertyEqualTo = R.curry(
     function (key, value, feature) {
-        return (R.compose(R.ifElse(R.has(key), R.compose(R.ifElse(R.compose(isArray), R.contains(value), R.equals(value)), R.prop(key)), R.F), R.prop('properties'))(feature));
+        return (R.compose(
+            R.ifElse(
+                R.has(key),
+                R.compose(
+                    R.ifElse(
+                        R.compose(isArray),
+                        R.contains(value),
+                        R.equals(value)
+                    ),
+                    R.prop(key)
+                ),
+                R.F
+            ),
+            R.prop('properties')
+        )(feature));
     }
 );
 
@@ -95,19 +234,12 @@ var XYZ = R.curry(
     function (zoom, feature) {
         var coords = getLatLng(feature);
         return [
-            (Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))), (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))),
+            (Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))),
+            (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))),
             zoom
         ];
     }
 );
-
-var isPoint = R.compose(R.equals('Point'), R.prop('type'), R.prop('geometry'));
-
-var isValidType = function (geojson) {
-    return R.contains(
-        R.prop('type', geojson), ["FeatureCollection", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"]
-    );
-};
 
 var allCoords = R.compose(R.uniq, R.splitEvery(2), R.flatten, R.prop('coordinates'), R.prop('geometry'));
 
@@ -118,8 +250,8 @@ var coordsToFeatures = R.curry(
     }
 );
 
-var buildBoundingBox = function (fc) {
-    var coords = (R.compose(R.splitEvery(2), R.flatten, R.pluck('coordinates'), R.pluck('geometry'), R.prop('features'))(fc)),
+var buildBoundingBox = function (featureCollection) {
+    var coords = (R.compose(R.splitEvery(2), R.flatten, R.pluck('coordinates'), R.pluck('geometry'), R.prop('features'))(featureCollection)),
         minLng = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(0)))(coords)),
         minLat = (R.compose(R.reduce(R.min, Infinity), R.map(R.nth(1)))(coords)),
         maxLng = (R.compose(R.reduce(R.max, -Infinity), R.map(R.nth(0)))(coords)),
@@ -167,10 +299,6 @@ var convex = function (fc) {
     return R.compose(buildFeaturecollection, R.prop('features'))(fc);
 };
 
-var isValid = function (geojson) {
-    return R.all(R.equals(true), [isValidType(geojson)]);
-};
-
 var split = R.curry(
     function (key, fc) {
         return R.compose(R.groupBy(getProperty(key)), R.prop('features'))(fc);
@@ -190,7 +318,7 @@ var centroid = R.compose(
     buildFeaturecollection,
     R.concat([]),
     R.flip(buildPointFeature)({
-        'type': "centroid"
+        'type': 'centroid'
     }),
     R.converge(function (a, b) {
         a = a.toFixed(3);
@@ -210,33 +338,35 @@ var centroid = R.compose(
 
 var closest = R.identity;
 
-var toRadians = R.multiply(R.divide(Math.PI,180));
+var toRadians = R.multiply(R.divide(Math.PI, 180));
 
 var distance = R.curry(
     function (feature1, feature2) {
-        var radius = 6373000; //meters
-
-        var lat1 = getLat(feature1);
-        var lng1 = getLng(feature1);
-
-        var lat2 = getLat(feature2);
-        var lng2 = getLng(feature2);
-
-        var dLat = toRadians(lat2 - lat1); 
-        var dLon = toRadians(lng2 - lng1);
-
-        var a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        var d = radius * c;
+        var radius = 6373000, //meters
+            lat1 = getLat(feature1),
+            lng1 = getLng(feature1),
+            lat2 = getLat(feature2),
+            lng2 = getLng(feature2),
+            dLat = toRadians(lat2 - lat1),
+            dLon = toRadians(lng2 - lng1),
+            a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2),
+            c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)),
+            d = radius * c;
         return Math.round(d);
     }
 );
 
 module.exports = {
+    buildGeometry: buildGeometry,
+    buildFeature: buildFeature,
+    validGeoKeys: validGeoKeys,
+    validGeoType: validGeoType,
+    validGeometry: validGeometry,
+    isObject: isObject,
+    getType: getType,
+    isType: isType,
     voroni: voroni,
     featurecollection: buildFeaturecollection,
     polygon: buildPolygonFeature,
