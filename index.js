@@ -24,6 +24,7 @@ Constants
 ********************************************************/
 var VALIDGEOJSONTYPES = ['FeatureCollection', 'GeometryCollection', 'Feature', 'Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'],
     VALIDGEOJSONGEOMETRIES = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'],
+    VALIDGEOMETRYKEYS = ['coordinates', 'type'],
     REQUIREDGEOJSONPROPERTIES = {
         FeatureCollection: ['type', 'features'],
         GeometryCollection: ['type', 'geometries'],
@@ -46,6 +47,12 @@ var getType = R.prop('type'),
     getLatLng = R.compose(R.prop('coordinates'), getGeometry),
     getLat = R.compose(R.nth(1), getLatLng),
     getLng = R.compose(R.nth(0), getLatLng);
+
+var getProperty = R.curry(
+    function (key, feature) {
+        return R.compose(R.prop(key), R.prop('properties'))(feature);
+    }
+);
 
 /********************************************************
 Validation Functions
@@ -72,10 +79,9 @@ var isType = R.curry(
 );
 
 var validGeoKeys = function (geometry) {
-    var validKeys = (R.sort(alphabetical)(REQUIREDGEOJSONPROPERTIES[R.prop('type', geometry)]));
     return (R.compose(
-        R.equals(validKeys),
-        R.intersection(validKeys),
+        R.equals(VALIDGEOMETRYKEYS),
+        R.intersection(VALIDGEOMETRYKEYS),
         R.sort(alphabetical),
         R.keys
     )(geometry));
@@ -85,13 +91,11 @@ var validGeoType = function (geometry) {
     return R.contains(getType(geometry), VALIDGEOJSONGEOMETRIES);
 };
 
-
 var validGeometry = function (geometry) {
     return (R.compose(
         //needs coordinate validation, replace the R.T with R.identity
-        R.ifElse(validGeoType, R.identity, R.F),
-        R.ifElse(validGeoKeys, R.identity, R.F),
-        R.ifElse(R.has('type'), R.identity, R.F)
+        R.ifElse(validGeoType, R.T, R.F),
+        R.ifElse(validGeoKeys, R.identity, R.F)
     )(geometry));
 };
 /*
@@ -134,47 +138,38 @@ var buildFeature = R.curry(
         };
     }
 );
-/*
+
+var toFeature = R.curry(
+    function (type, coordinates, properties) {
+        return (R.compose(
+            buildFeature(properties),
+            buildGeometry(type)
+        )(coordinates));
+    }
+);
+
 var buildCollection = R.curry(
     function (type, array) {
-        return {
-            'type': type,
+        var collection = {},
+            arrayKey;
+        if (R.contains(R.toLower(type), ['feature', 'featurecollection'])) {
+            arrayKey = 'features';
+            type = 'FeatureCollection';
+        } else if (R.contains(R.toLower(type), ['geometry', 'geometrycollection'])) {
+            arrayKey = 'geometries';
+            type = 'GeometryCollection';
+        } else {
+            arrayKey = type;
         }
-    }
-)*/
-
-var buildFeaturecollection = function (arrayOfFeatures) {
-    return {
-        type: 'FeatureCollection',
-        features: arrayOfFeatures
-    };
-};
-
-var buildPointFeature = R.curry(
-    function (coords, properties) {
-        return {
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: coords
-            },
-            properties: properties
-        };
+        collection.type = type;
+        collection[arrayKey] = array;
+        return collection;
     }
 );
 
-var buildPolygonFeature = R.curry(
-    function (coords, properties) {
-        return {
-            type: 'Feature',
-            geometry: {
-                type: 'Polygon',
-                coordinates: coords
-            },
-            properties: properties
-        };
-    }
-);
+var buildPointFeature = toFeature('Point');
+var buildPolygonFeature = toFeature('Polygon');
+var buildFeaturecollection = buildCollection('Feature');
 
 var createVoroni = R.curry(
     function (FeatureCollection) {
@@ -216,12 +211,6 @@ var propertyEqualTo = R.curry(
     }
 );
 
-var getProperty = R.curry(
-    function (key, feature) {
-        return R.compose(R.prop(key), R.prop('properties'))(feature);
-    }
-);
-
 var combinePoints = function (array) {
     var properties = {
             features: R.pluck('properties', array)
@@ -260,14 +249,25 @@ var buildBoundingBox = function (featureCollection) {
 };
 
 var merge = R.curry(
-    function (fc) {
-        return (R.compose(buildFeaturecollection, R.map(combinePoints), R.converge(R.props, [R.keys, R.identity]), R.groupBy(getLatLng), R.filter(isPoint), R.prop('features'))(fc));
+    function (featureCollection) {
+        return (R.compose(
+            buildFeaturecollection,
+            R.map(combinePoints),
+            R.converge(R.props, [R.keys, R.identity]),
+            R.groupBy(getLatLng),
+            R.filter(isPoint),
+            R.prop('features')
+        )(featureCollection));
     }
 );
 
 var remove = R.curry(
-    function (func, fc) {
-        return R.compose(buildFeaturecollection, R.filter(R.compose(R.not, func)), R.prop('features'))(fc);
+    function (func, featureCollection) {
+        return R.compose(
+            buildFeaturecollection,
+            R.filter(R.compose(R.not, func)),
+            R.prop('features')
+        )(featureCollection);
     }
 );
 
@@ -305,13 +305,18 @@ var split = R.curry(
     }
 );
 
-var appendBbox = function (fc) {
+var appendBbox = function (featureCollection) {
     var bboxLens = R.lensProp('bbox');
-    return R.set(bboxLens, buildBoundingBox(fc), fc);
+    return R.set(bboxLens, buildBoundingBox(featureCollection), featureCollection);
 };
 
-var explode = function (fc) {
-    return (R.compose(buildFeaturecollection, R.nth(0), R.map(R.converge(coordsToFeatures, [allCoords, R.prop('properties')])), R.prop('features'))(fc));
+var explode = function (featureCollection) {
+    return (R.compose(
+        buildFeaturecollection,
+        R.nth(0),
+        R.map(R.converge(coordsToFeatures, [allCoords, R.prop('properties')])),
+        R.prop('features')
+    )(featureCollection));
 };
 
 var centroid = R.compose(
@@ -361,6 +366,8 @@ var distance = R.curry(
 module.exports = {
     buildGeometry: buildGeometry,
     buildFeature: buildFeature,
+    toFeature: toFeature,
+    buildCollection: buildCollection,
     validGeoKeys: validGeoKeys,
     validGeoType: validGeoType,
     validGeometry: validGeometry,

@@ -2,6 +2,27 @@ var sod = require('../../index.js');
 var R = require('ramda');
 
 describe("Sod constructors: ", function() {
+    it('toFeature: creates feature object', function () {
+        var type = 'Point',
+            coordinates = [-104.99404, 39.75621],
+            properties = {
+                "name": "Coors Field",
+                "amenity": "Baseball Stadium",
+                "popupContent": "This is where the Rockies play!"
+            };
+        expect(JSON.stringify(sod.toFeature(type,coordinates,properties))).toBe(JSON.stringify({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [-104.99404, 39.75621]
+            },
+            "properties": {
+                "name": "Coors Field",
+                "amenity": "Baseball Stadium",
+                "popupContent": "This is where the Rockies play!"
+            }
+        }))
+    });
     it('buildGeometry - creates geometry object', function () {
         expect(JSON.stringify(sod.buildGeometry('Point',[-105.01621, 39.57422]))).toBe(JSON.stringify({
                 "type": "Point",

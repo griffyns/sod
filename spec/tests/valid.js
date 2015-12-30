@@ -1,7 +1,7 @@
  var sod = require('../../index.js');
  var R = require('ramda');
  describe("Sod Lib", function() {
-    it('validGeometry: checks the object passed is a valed geometry.', function () {
+    it('validGeometry: checks the object passed is a valid geometry.', function () {
         var geometry = {
                 "type": "Point",
                 "coordinates": [-105.01621,
@@ -14,9 +14,9 @@
                     39.57422
                 ]
             };
-        expect(sod.validGeoType(geometry)).toBe(true);
-        expect(sod.validGeoType(geometry2)).toBe(false);
-        expect(sod.validGeoType({})).toBe(false);
+        expect(sod.validGeometry(geometry)).toBe(true);
+        expect(sod.validGeometry(geometry2)).toBe(false);
+        expect(sod.validGeometry({})).toBe(false);
     });
     it('validGeoType: checks the type of a geometry is valid', function () {
         var geometry = {
