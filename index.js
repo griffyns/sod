@@ -223,8 +223,7 @@ var XYZ = R.curry(
     function (zoom, feature) {
         var coords = getLatLng(feature);
         return [
-            (Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))),
-            (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))),
+            (Math.floor((1 - Math.log(Math.tan(coords[1] * Math.PI / 180) + 1 / Math.cos(coords[1] * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))), (Math.floor((coords[0] + 180) / 360 * Math.pow(2, zoom))),
             zoom
         ];
     }
@@ -355,15 +354,34 @@ var distance = R.curry(
             dLat = toRadians(lat2 - lat1),
             dLon = toRadians(lng2 - lng1),
             a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2),
+            Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2),
             c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)),
             d = radius * c;
         return Math.round(d);
     }
 );
+var midpoint = R.curry(
+    function (feature1, feature2) {
+        var avgCoord = function (func) {
+            return R.compose(lift, R.mean, R.map(func));
+        };
+        var lift = function (value) {
+            return [value];
+        };
+        return (R.compose(
+            (R.flip(buildPointFeature)({})),
+            R.converge(
+                R.concat,
+                [avgCoord(getLng), avgCoord(getLat)]
+            )
+        )([feature1, feature2]));
+    }
+);
+
 
 module.exports = {
+    midpoint: midpoint,
     buildGeometry: buildGeometry,
     buildFeature: buildFeature,
     toFeature: toFeature,
